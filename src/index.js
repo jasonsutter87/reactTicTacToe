@@ -53,21 +53,21 @@ function calculateWinner(squares) {
     [0, 4, 8],
     [2, 4, 6]
   ];
-  let count = 0;
+
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
       return squares[a];
     }
   }
-  let result = (squares.every(function(i){
-    return i != null;
-  }));
+  let result = squares.every(function(i){
+    return i !== null;
+  });
 
   if(result) {
     return "No Winner";
   }
-  
+
   return null;
 }
 
@@ -132,7 +132,7 @@ class Game extends React.Component {
     } else {
       status = "Next player: " + (this.state.xIsNext ? "🤖" : "👾");
     }
-    // TODO cats game option
+
 
     return (
       <div className="game">
