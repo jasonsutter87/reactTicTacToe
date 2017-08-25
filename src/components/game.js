@@ -2,6 +2,7 @@ import React from 'react';
 import Board from './board';
 import { calculateWinner }  from '../helperFunctions/helpers';
 import gameReducer from '../reducers/reducers';
+import {switchPlayer, markBoard, setWinner, addToHistory, stepNumber} from '../actions/actions';
 import { createStore } from 'redux';
 const store = createStore(gameReducer);
 
@@ -22,22 +23,41 @@ class Game extends React.Component {
   }
 
   handleClick(i) {
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
-    const current = history[history.length - 1];
-    const squares = current.squares.slice();
-    if (calculateWinner(squares) || squares[i]) {
-      return;
+    const step_count = store.getState()['step_num']
+    // const history = this.state.history.slice(0, this.state.stepNumber + 1);
+    const history = store.getState()['history'].slice(0, step_count + 1);
+
+    console.log(store.getState());
+    // const current = history[history.length - 1];
+    const current = history.length;
+    console.log(current);
+    // //
+    // //
+    // const squares = current.squares.slice();
+    // // console.log(squares);
+    //
+    //
+    // if (calculateWinner(squares) || squares[i]) {
+    //   return;
+    // }
+    // squares[i] = this.state.xIsNext ? "🤖" : "👾";
+    // // squares[i] = store.getState()['player'] ? "🤖" : "👾";
+    // // console.log(squares[i]);
+    if(store.getState()['player'] === "🤖"){
+      store.dispatch(switchPlayer("👾"));
+    } else {
+      store.dispatch(switchPlayer("🤖"));
     }
-    squares[i] = this.state.xIsNext ? "🤖" : "👾";
-    this.setState({
-      history: history.concat([
-        {
-          squares: squares
-        }
-      ]),
-      stepNumber: history.length,
-      xIsNext: !this.state.xIsNext
-    });
+    //
+    // this.setState({
+    //   history: history.concat([
+    //     {
+    //       squares: squares
+    //     }
+    //   ]),
+    //   stepNumber: history.length,
+    //   xIsNext: !this.state.xIsNext
+    // });
   }
 
   jumpTo(step) {
@@ -64,6 +84,8 @@ class Game extends React.Component {
     let status;
     if (winner) {
       status = "Winner: " + winner;
+      console.log(store.dispatch(setWinner(winner)))
+      console.log(store.getState())
     } else {
       status = "Next player: " + (this.state.xIsNext ? "🤖" : "👾");
     }
