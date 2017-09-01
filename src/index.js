@@ -1,6 +1,99 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
+import { createStore } from 'redux';
+
+const SWITCH_PLAYER = 'SWITCH_PLAYER';
+const MARK_BOARD = 'MARK_BOARD';
+const ADD_TO_HISTORY = 'ADD_TO_HISTORY';
+const INCREASE_STEP_COUNT = 'INCREASE_STEP_COUNT';
+const JUMP_TO_HISTORY = 'JUMP_TO_HISTORY';
+
+function switchPlayer(player){
+  return {
+    type: SWITCH_PLAYER,
+    player
+  }
+}
+
+function markBoard(player, position){
+  return {
+    type: MARK_BOARD,
+    player,
+    position
+  }
+}
+
+function addToHistory(board, stepCount){
+  return {
+    type: ADD_TO_HISTORY,
+    board,
+    stepCount
+  }
+}
+
+function increaseStepCount(value){
+  return {
+    type: INCREASE_STEP_COUNT,
+    value
+  }
+}
+
+function jumpToHistory(stepCount){
+  return {
+    type: JUMP_TO_HISTORY,
+    stepCount
+  }
+}
+
+function playersTurn(player, position) {
+  store.dispatch(markBoard(player, position))
+  store.dispatch(increaseStepCount(1))
+  store.dispatch(addToHistory(store.getState().board))
+  if (calculateWinner(store.getState().board)) {
+    return;
+  }
+  player === "🤖" ? store.dispatch(switchPlayer("👾")) : store.dispatch(switchPlayer("🤖"))
+}
+
+function jumpTo(step) {
+       store.dispatch(jumpToHistory(step));
+}
+
+const initialState = {
+  player: '🤖',
+  board: new Array(9).fill(null),
+  history: [
+    {
+      squares: Array(9).fill(null),
+      player: '🤖',
+      stepNumber: 0,
+    }
+  ],
+  stepNumber: 0
+};
+
+function gameReducer(state = initialState, action) {
+  switch (action.type) {
+    case SWITCH_PLAYER:
+      return Object.assign({}, state, { player: action.player })
+    case MARK_BOARD:
+      const newBoard = state.board.slice();
+      newBoard[action.position] = action.player
+
+      return Object.assign({}, state, { board: newBoard })
+    case ADD_TO_HISTORY:
+      return Object.assign({}, state, { history: state.history.concat([{squares: action.board, stepNumber: store.getState().stepNumber , player: store.getState().player}])})
+    case INCREASE_STEP_COUNT:
+        return Object.assign({}, state, { stepNumber: state.stepNumber + 1 })
+    case JUMP_TO_HISTORY:
+      return Object.assign({}, state, {board: state.history[action.stepCount].squares}, { stepNumber: state.history[action.stepCount].stepNumber }, {player: state.history[action.stepCount].player})
+    default:
+      return state;
+  }
+}
+
+const store = createStore(gameReducer, window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__());
 
 function Square(props) {
   return (
@@ -60,6 +153,8 @@ function calculateWinner(squares) {
       return squares[a];
     }
   }
+
+
   let result = squares.every(function(i){
     return i !== null;
   });
@@ -73,55 +168,21 @@ function calculateWinner(squares) {
 
 
 class Game extends React.Component {
-  constructor() {
-    super();
-    this.state = {
-      history: [
-        {
-          squares: Array(9).fill(null)
-        }
-      ],
-      stepNumber: 0,
-      xIsNext: true
-    };
-  }
-
   handleClick(i) {
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
-    const current = history[history.length - 1];
-    const squares = current.squares.slice();
-    if (calculateWinner(squares) || squares[i]) {
-      return;
+    if(store.getState().board[i] === null){
+      playersTurn(store.getState().player, i)
     }
-    squares[i] = this.state.xIsNext ? "🤖" : "👾";
-    this.setState({
-      history: history.concat([
-        {
-          squares: squares
-        }
-      ]),
-      stepNumber: history.length,
-      xIsNext: !this.state.xIsNext
-    });
-  }
-
-  jumpTo(step) {
-    this.setState({
-      stepNumber: step,
-      xIsNext: (step % 2) === 0
-    });
   }
 
   render() {
-    const history = this.state.history;
-    const current = history[this.state.stepNumber];
-    const winner = calculateWinner(current.squares);
+    const history = store.getState().history;
+    const winner = calculateWinner(store.getState().board);
 
     const moves = history.map((step, move) => {
       const desc = move ? "Move #" + move : "Game start";
       return (
         <li key={move}>
-          <a href="#" onClick={() => this.jumpTo(move)}>{desc}</a>
+          <a href ="#" onClick={() => jumpTo(move)}>{desc}</a>
         </li>
       );
     });
@@ -130,15 +191,14 @@ class Game extends React.Component {
     if (winner) {
       status = "Winner: " + winner;
     } else {
-      status = "Next player: " + (this.state.xIsNext ? "🤖" : "👾");
+      status = "Next player: " + store.getState().player
     }
-
 
     return (
       <div className="game">
         <div className="game-board">
           <Board
-            squares={current.squares}
+            squares={store.getState().board}
             onClick={i => this.handleClick(i)}
           />
         </div>
@@ -151,6 +211,9 @@ class Game extends React.Component {
   }
 }
 
-// ========================================
+const render = () => {
+  ReactDOM.render(<Game />, document.getElementById("root"));
+}
 
-ReactDOM.render(<Game />, document.getElementById("root"));
+store.subscribe(render)
+render()
